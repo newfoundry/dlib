@@ -7,17 +7,19 @@ endif()
 
 
 
-# Check if we are being built as part of a pybind11 module. 
+# Check if we are being built as part of a pybind11 module.
 if (COMMAND pybind11_add_module)
    # For python users, enable SSE4 and AVX if they have these instructions.
    include(${CMAKE_CURRENT_LIST_DIR}/check_if_sse4_instructions_executable_on_host.cmake)
    if (SSE4_IS_AVAILABLE_ON_HOST)
       set(USE_SSE4_INSTRUCTIONS ON CACHE BOOL "Use SSE4 instructions")
    endif()
-   include(${CMAKE_CURRENT_LIST_DIR}/check_if_avx_instructions_executable_on_host.cmake)
-   if (AVX_IS_AVAILABLE_ON_HOST)
-      set(USE_AVX_INSTRUCTIONS ON CACHE BOOL "Use AVX instructions")
-   endif()
+   # Do not check for AVX because we are building on host docker instance
+   # TODO: If this works, make it a cleaner opt-out for AVX
+   # include(${CMAKE_CURRENT_LIST_DIR}/check_if_avx_instructions_executable_on_host.cmake)
+   # if (AVX_IS_AVAILABLE_ON_HOST)
+   #    set(USE_AVX_INSTRUCTIONS ON CACHE BOOL "Use AVX instructions")
+   # endif()
 endif()
 
 
@@ -25,7 +27,7 @@ endif()
 set(USING_OLD_VISUAL_STUDIO_COMPILER 0)
 if(MSVC AND MSVC_VERSION VERSION_LESS 1900)
    message(FATAL_ERROR "C++11 is required to use dlib, but the version of Visual Studio you are using is too old and doesn't support C++11.  You need Visual Studio 2015 or newer. ")
-elseif(MSVC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 19.0.24210.0 ) 
+elseif(MSVC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 19.0.24210.0 )
    message(STATUS "NOTE: Visual Studio didn't have good enough C++11 support until Visual Studio 2015 update 3 (v19.0.24210.0)")
    message(STATUS "So we aren't enabling things that require full C++11 support (e.g. the deep learning tools).")
    message(STATUS "Also, be aware that Visual Studio's version naming is confusing, in particular, there are multiple versions of 'update 3'")
@@ -61,7 +63,7 @@ set(gcc_like_compilers GNU Clang  Intel)
 set(intel_archs x86_64 i386 i686 AMD64 amd64 x86)
 
 
-# Setup some options to allow a user to enable SSE and AVX instruction use.  
+# Setup some options to allow a user to enable SSE and AVX instruction use.
 if ((";${gcc_like_compilers};" MATCHES ";${CMAKE_CXX_COMPILER_ID};")  AND
    (";${intel_archs};"        MATCHES ";${CMAKE_SYSTEM_PROCESSOR};") AND NOT USE_AUTO_VECTOR)
    option(USE_SSE2_INSTRUCTIONS "Compile your program with SSE2 instructions" OFF)
@@ -77,7 +79,7 @@ if ((";${gcc_like_compilers};" MATCHES ";${CMAKE_CXX_COMPILER_ID};")  AND
       list(APPEND active_compile_opts -msse2)
       message(STATUS "Enabling SSE2 instructions")
    endif()
-elseif (MSVC OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC") # else if using Visual Studio 
+elseif (MSVC OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC") # else if using Visual Studio
    # Use SSE2 by default when using Visual Studio.
    option(USE_SSE2_INSTRUCTIONS "Compile your program with SSE2 instructions" ON)
    option(USE_SSE4_INSTRUCTIONS "Compile your program with SSE4 instructions" OFF)
@@ -144,7 +146,7 @@ if (MSVC)
    # RAM.
    list(APPEND active_compile_opts_private "/MP")
 
-   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 3.3) 
+   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 3.3)
       # Clang can compile all Dlib's code at Windows platform. Tested with Clang 5
       list(APPEND active_compile_opts "-Xclang -fcxx-exceptions")
    endif()
